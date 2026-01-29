@@ -13,8 +13,6 @@
   <arg name="goalY" default="0.0"/>
   <arg name="is_real_robot" default="true"/>
 
-  <!-- <node pkg="local_planner" exec="pose_to_point_relay.py" name="pose_to_point_relay" output="screen"/> -->
-
   <node pkg="local_planner" exec="localPlanner" name="localPlanner" output="screen">
     <remap from="/state_estimation" to="/spot/platform/odom"/>
     <param name="pathFolder" value="$(find-pkg-share local_planner)/paths" />
@@ -94,9 +92,7 @@
     <param name="goalCloseDis" value="$(var goalCloseDis)"/>
     <param name="is_real_robot" value="$(var is_real_robot)"/>
   </node>
-
-  <!-- <node pkg="local_planner" exec="twist_stamped_relay.py" name="twist_relay" output="screen"/> -->
-
+  
   <node pkg="tf2_ros" exec="static_transform_publisher" name="vehicleTransPublisher" args="-$(var sensorOffsetX) -$(var sensorOffsetY) 0 0 0 0 /sensor /vehicle"/>
 
   <node pkg="tf2_ros" exec="static_transform_publisher" name="sensorTransPublisher" args="0 0 $(var cameraOffsetZ) -1.5707963 0 -1.5707963 /sensor /camera"/>
