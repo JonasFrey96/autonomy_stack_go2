@@ -3,20 +3,23 @@
   <arg name="sensorOffsetX" default="0.0"/>
   <arg name="sensorOffsetY" default="0.0"/>
   <arg name="cameraOffsetZ" default="0.0"/>
-  <arg name="twoWayDrive" default="false"/>
-  <arg name="maxSpeed" default="1.0"/>
-  <arg name="autonomyMode" default="false"/>
-  <arg name="autonomySpeed" default="1.0"/>
+  <arg name="twoWayDrive" default="true"/>
+  <arg name="maxSpeed" default="1.5"/>
+  <arg name="autonomyMode" default="true"/>
+  <arg name="autonomySpeed" default="1.5"/>
   <arg name="joyToSpeedDelay" default="2.0"/>
-  <arg name="goalCloseDis" default="0.4"/>
+  <arg name="goalCloseDis" default="0.15"/>
   <arg name="goalX" default="0.0"/>
   <arg name="goalY" default="0.0"/>
   <arg name="is_real_robot" default="true"/>
 
+  <node pkg="local_planner" exec="pose_to_point_relay.py" name="pose_to_point_relay" output="screen"/>
+
   <node pkg="local_planner" exec="localPlanner" name="localPlanner" output="screen">
+    <remap from="/state_estimation" to="/spot/platform/odom"/>
     <param name="pathFolder" value="$(find-pkg-share local_planner)/paths" />
-    <param name="vehicleLength" value="0.3" />
-    <param name="vehicleWidth" value="0.7" />
+    <param name="vehicleLength" value="0.6" />
+    <param name="vehicleWidth" value="1.1" />
     <param name="sensorOffsetX" value="$(var sensorOffsetX)" />
     <param name="sensorOffsetY" value="$(var sensorOffsetY)" />
     <param name="twoWayDrive" value="$(var twoWayDrive)" />
@@ -26,11 +29,11 @@
     <param name="checkObstacle" value="true" />
     <param name="checkRotObstacle" value="false" />
     <param name="adjacentRange" value="3.0" />
-    <param name="obstacleHeightThre" value="0.3" />
+    <param name="obstacleHeightThre" value="0.2" />
     <param name="groundHeightThre" value="0.1" />
-    <param name="costHeightThre" value="0.1" />
+    <param name="costHeightThre" value="0.01" />
     <param name="costScore" value="0.02" />
-    <param name="useCost" value="false" />
+    <param name="useCost" value="true" />
     <param name="pointPerPathThre" value="2" />
     <param name="minRelZ" value="-0.5" />
     <param name="maxRelZ" value="0.25" />
@@ -56,6 +59,8 @@
   </node>
 
   <node pkg="local_planner" exec="pathFollower" name="pathFollower" output="screen">
+    <remap from="/state_estimation" to="/spot/platform/odom"/>
+    <remap from="/cmd_vel" to="/cmd_vel_stamped"/>
     <param name="sensorOffsetX" value="$(var sensorOffsetX)" />
     <param name="sensorOffsetY" value="$(var sensorOffsetY)" />
     <param name="pubSkipNum" value="1" />
@@ -70,7 +75,7 @@
     <param name="dirDiffThre" value="0.4" />
     <param name="omniDirDiffThre" value="1.5" />
     <param name="noRotSpeed" value="10.0"/>
-    <param name="stopDisThre" value="0.3" />
+    <param name="stopDisThre" value="0.15" />
     <param name="slowDwnDisThre" value="0.75" />
     <param name="useInclRateToSlow" value="false" />
     <param name="inclRateThre" value="120.0" />
@@ -90,8 +95,10 @@
     <param name="is_real_robot" value="$(var is_real_robot)"/>
   </node>
 
+  <node pkg="local_planner" exec="twist_stamped_relay.py" name="twist_relay" output="screen"/>
+
   <node pkg="tf2_ros" exec="static_transform_publisher" name="vehicleTransPublisher" args="-$(var sensorOffsetX) -$(var sensorOffsetY) 0 0 0 0 /sensor /vehicle"/>
 
   <node pkg="tf2_ros" exec="static_transform_publisher" name="sensorTransPublisher" args="0 0 $(var cameraOffsetZ) -1.5707963 0 -1.5707963 /sensor /camera"/>
-  
+
 </launch>

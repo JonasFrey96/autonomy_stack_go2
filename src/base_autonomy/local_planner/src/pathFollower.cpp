@@ -34,10 +34,6 @@
 #include "rmw/types.h"
 #include "rmw/qos_profiles.h"
 
-// For real robot
-#include "unitree_api/msg/request.hpp"
-#include "common/ros2_sport_client.h"
-
 using namespace std;
 
 const double PI = 3.1415926;
@@ -114,9 +110,6 @@ double switchTime = 0;
 nav_msgs::msg::Path path;
 rclcpp::Node::SharedPtr nh;
 
-unitree_api::msg::Request req;
-SportClient sport_req;
-
 void odomHandler(const nav_msgs::msg::Odometry::ConstSharedPtr odomIn)
 {
   odomTime = rclcpp::Time(odomIn->header.stamp).seconds();
@@ -163,7 +156,7 @@ void pathHandler(const nav_msgs::msg::Path::ConstSharedPtr pathIn)
 
 void joystickHandler(const sensor_msgs::msg::Joy::ConstSharedPtr joy)
 {
-  joyTime = nh->now().seconds(); 
+  joyTime = nh->now().seconds();
   joySpeedRaw = sqrt(joy->axes[3] * joy->axes[3] + joy->axes[4] * joy->axes[4]);
   joySpeed = joySpeedRaw;
   if (joySpeed > 1.0) joySpeed = 1.0;
@@ -292,10 +285,8 @@ int main(int argc, char** argv)
 
   auto pubSpeed = nh->create_publisher<geometry_msgs::msg::TwistStamped>("/cmd_vel", 5);
 
-  auto pubGo2Request = nh->create_publisher<unitree_api::msg::Request>("/api/sport/request", 10);
-
   geometry_msgs::msg::TwistStamped cmd_vel;
-  cmd_vel.header.frame_id = "vehicle";
+  cmd_vel.header.frame_id = "spot/body";
 
   if (autonomyMode) {
     joySpeed = autonomySpeed / maxSpeed;
@@ -310,9 +301,9 @@ int main(int argc, char** argv)
     rclcpp::spin_some(nh);
 
     if (pathInit) {
-      float vehicleXRel = cos(vehicleYawRec) * (vehicleX - vehicleXRec) 
+      float vehicleXRel = cos(vehicleYawRec) * (vehicleX - vehicleXRec)
                         + sin(vehicleYawRec) * (vehicleY - vehicleYRec);
-      float vehicleYRel = -sin(vehicleYawRec) * (vehicleX - vehicleXRec) 
+      float vehicleYRel = -sin(vehicleYawRec) * (vehicleX - vehicleXRec)
                         + cos(vehicleYawRec) * (vehicleY - vehicleYRec);
 
       int pathSize = path.poses.size();
@@ -415,7 +406,7 @@ int main(int argc, char** argv)
           cmd_vel.twist.linear.y = -sin(dirDiff) * vehicleSpeed;
         }
         cmd_vel.twist.angular.z = vehicleYawRate;
-        
+
         if (manualMode) {
           cmd_vel.twist.linear.x = maxSpeed * joyManualFwd;
           cmd_vel.twist.linear.y = maxSpeed / 2.0 * joyManualLeft;
@@ -425,17 +416,6 @@ int main(int argc, char** argv)
         pubSpeed->publish(cmd_vel);
 
         pubSkipCount = pubSkipNum;
-
-        if (is_real_robot)
-        {
-          if (cmd_vel.twist.linear.x == 0 && cmd_vel.twist.linear.y == 0 && cmd_vel.twist.angular.z == 0){
-          	sport_req.StopMove(req);
-          }
-          else{
-               sport_req.Move(req, cmd_vel.twist.linear.x, cmd_vel.twist.linear.y, cmd_vel.twist.angular.z);
-          }
-          pubGo2Request->publish(req);
-        }
       }
     }
 
