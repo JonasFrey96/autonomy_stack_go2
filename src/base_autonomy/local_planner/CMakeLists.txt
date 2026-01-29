@@ -58,8 +58,6 @@ install(
 )
 
 install(PROGRAMS
-  src/twist_stamped_relay.py
-  src/pose_to_point_relay.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
