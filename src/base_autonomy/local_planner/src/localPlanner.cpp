@@ -44,7 +44,7 @@ const double PI = 3.1415926;
 #define PLOTPATHSET 1
 
 string pathFolder;
-double vehicleLength = 1.1;
+double vehicleLength = 0.6;
 double vehicleWidth = 0.6;
 double sensorOffsetX = 0;
 double sensorOffsetY = 0;
@@ -701,9 +701,9 @@ int main(int argc, char** argv)
 
       int boundaryCloudSize = boundaryCloud->points.size();
       for (int i = 0; i < boundaryCloudSize; i++) {
-        point.x = ((boundaryCloud->points[i].x - vehicleX) * cosVehicleYaw 
+        point.x = ((boundaryCloud->points[i].x - vehicleX) * cosVehicleYaw
                 + (boundaryCloud->points[i].y - vehicleY) * sinVehicleYaw);
-        point.y = (-(boundaryCloud->points[i].x - vehicleX) * sinVehicleYaw 
+        point.y = (-(boundaryCloud->points[i].x - vehicleX) * sinVehicleYaw
                 + (boundaryCloud->points[i].y - vehicleY) * cosVehicleYaw);
         point.z = boundaryCloud->points[i].z;
         point.intensity = boundaryCloud->points[i].intensity;
@@ -716,9 +716,9 @@ int main(int argc, char** argv)
 
       int addedObstaclesSize = addedObstacles->points.size();
       for (int i = 0; i < addedObstaclesSize; i++) {
-        point.x = ((addedObstacles->points[i].x - vehicleX) * cosVehicleYaw 
+        point.x = ((addedObstacles->points[i].x - vehicleX) * cosVehicleYaw
                 + (addedObstacles->points[i].y - vehicleY) * sinVehicleYaw);
-        point.y = (-(addedObstacles->points[i].x - vehicleX) * sinVehicleYaw 
+        point.y = (-(addedObstacles->points[i].x - vehicleX) * sinVehicleYaw
                 + (addedObstacles->points[i].y - vehicleY) * cosVehicleYaw);
         point.z = addedObstacles->points[i].z;
         point.intensity = addedObstacles->points[i].intensity;
@@ -787,7 +787,7 @@ int main(int argc, char** argv)
               float x2 = cos(rotAng) * x + sin(rotAng) * y;
               float y2 = -sin(rotAng) * x + cos(rotAng) * y;
 
-              float scaleY = x2 / gridVoxelOffsetX + searchRadius / gridVoxelOffsetY 
+              float scaleY = x2 / gridVoxelOffsetX + searchRadius / gridVoxelOffsetY
                              * (gridVoxelOffsetX - x2) / gridVoxelOffsetX;
 
               int indX = int((gridVoxelOffsetX + gridVoxelSize / 2 - x2) / gridVoxelSize);
@@ -808,7 +808,7 @@ int main(int argc, char** argv)
             }
           }
 
-          if (dis < diameter / pathScale && (fabs(x) > vehicleLength / pathScale / 2.0 || fabs(y) > vehicleWidth / pathScale / 2.0) && 
+          if (dis < diameter / pathScale && (fabs(x) > vehicleLength / pathScale / 2.0 || fabs(y) > vehicleWidth / pathScale / 2.0) &&
               (h > obstacleHeightThre || !useTerrainAnalysis) && checkRotObstacle) {
             float angObs = atan2(y, x) * 180.0 / PI;
             if (angObs > 0) {
@@ -866,7 +866,7 @@ int main(int argc, char** argv)
           float rotAng = (10.0 * rotDir - 180.0) * PI / 180;
           float rotDeg = 10.0 * rotDir;
           if (rotDeg > 180.0) rotDeg -= 360.0;
-          if (maxScore < clearPathPerGroupScore[i] && ((rotAng * 180.0 / PI > minObsAngCW && rotAng * 180.0 / PI < minObsAngCCW) || 
+          if (maxScore < clearPathPerGroupScore[i] && ((rotAng * 180.0 / PI > minObsAngCW && rotAng * 180.0 / PI < minObsAngCCW) ||
               (rotDeg > minObsAngCW && rotDeg < minObsAngCCW && twoWayDrive) || !checkRotObstacle)) {
             maxScore = clearPathPerGroupScore[i];
             selectedGroupID = i;
@@ -912,8 +912,8 @@ int main(int argc, char** argv)
               angDiff = 360.0 - angDiff;
             }
             if ((angDiff > dirThre && !dirToVehicle) || (fabs(10.0 * rotDir - 180.0) > dirThre && fabs(joyDir) <= 90.0 && dirToVehicle) ||
-                ((10.0 * rotDir > dirThre && 360.0 - 10.0 * rotDir > dirThre) && fabs(joyDir) > 90.0 && dirToVehicle) || 
-                !((rotAng * 180.0 / PI > minObsAngCW && rotAng * 180.0 / PI < minObsAngCCW) || 
+                ((10.0 * rotDir > dirThre && 360.0 - 10.0 * rotDir > dirThre) && fabs(joyDir) > 90.0 && dirToVehicle) ||
+                !((rotAng * 180.0 / PI > minObsAngCW && rotAng * 180.0 / PI < minObsAngCCW) ||
                 (rotDeg > minObsAngCW && rotDeg < minObsAngCCW && twoWayDrive) || !checkRotObstacle)) {
               continue;
             }
