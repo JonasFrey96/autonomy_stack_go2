@@ -16,6 +16,7 @@
 #include "tf2/transform_datatypes.h"
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "nav_msgs/msg/occupancy_grid.hpp"
 
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/kdtree/kdtree_flann.h>
@@ -280,6 +281,8 @@ int main(int argc, char **argv) {
 
   auto pubLaserCloud = nh->create_publisher<sensor_msgs::msg::PointCloud2>("/terrain_map", 2);
 
+  auto pubOccupancy = nh->create_publisher<nav_msgs::msg::OccupancyGrid>("/map", rclcpp::QoS(1).transient_local().reliable());
+  
   for (int i = 0; i < terrainVoxelNum; i++) {
     terrainVoxelCloud[i].reset(new pcl::PointCloud<pcl::PointXYZI>());
   }
@@ -702,6 +705,79 @@ int main(int argc, char **argv) {
       terrainCloud2.header.stamp = rclcpp::Time(static_cast<uint64_t>(laserCloudTime * 1e9));
       terrainCloud2.header.frame_id = "spot/odom";
       pubLaserCloud->publish(terrainCloud2);
+
+
+
+      // --- Occupancy Grid Generation ---
+      auto grid_msg = nav_msgs::msg::OccupancyGrid();
+      grid_msg.header.stamp = rclcpp::Time(static_cast<uint64_t>(laserCloudTime * 1e9));
+      grid_msg.header.frame_id = "spot/odom"; 
+
+      // Grid Parameters: 100x100 at 0.1m resolution = 10m x 10m area
+      float resolution = 0.1;
+      int width = 100;
+      int height = 100;
+      
+      grid_msg.info.resolution = resolution;
+      grid_msg.info.width = width;
+      grid_msg.info.height = height;
+
+      // Center the grid on the vehicle
+      grid_msg.info.origin.position.x = vehicleX - (width * resolution) / 2.0;
+      grid_msg.info.origin.position.y = vehicleY - (height * resolution) / 2.0;
+      grid_msg.info.origin.position.z = vehicleZ;
+      grid_msg.info.origin.orientation.w = 1.0;
+
+      // Initialize with unknown (-1)
+      grid_msg.data.assign(width * height, -1);
+
+      // Fill grid from PointCloud
+      // Intensity in terrainCloudElev represents the relative height (disZ)
+      // High disZ = Obstacle
+      float obstacleThreshold = 0.3; // 30cm height difference is an obstacle
+
+      for (const auto& pt : terrainCloudElev->points) {
+        int gridX = int((pt.x - grid_msg.info.origin.position.x) / resolution);
+        int gridY = int((pt.y - grid_msg.info.origin.position.y) / resolution);
+
+        if (gridX >= 0 && gridX < width && gridY >= 0 && gridY < height) {
+          int index = gridY * width + gridX;
+          if (pt.intensity > obstacleThreshold) {
+            grid_msg.data[index] = 100; // Obstacle
+          } else if (grid_msg.data[index] != 100) {
+            grid_msg.data[index] = 0;   // Traversable Ground
+          }
+        }
+      }
+
+      // --- Simple Dilation / Neighborhood Filling ---
+      auto refined_data = grid_msg.data; 
+      for (int y = 1; y < height - 1; y++) {
+        for (int x = 1; x < width - 1; x++) {
+          int idx = y * width + x;
+          
+          if (grid_msg.data[idx] == -1) {
+            int knownCount = 0;
+            bool obstacleNear = false;
+
+            // Check 3x3 neighborhood
+            for (int dy = -1; dy <= 1; dy++) {
+              for (int dx = -1; dx <= 1; dx++) {
+                int n_idx = (y + dy) * width + (x + dx);
+                if (grid_msg.data[n_idx] == 100) obstacleNear = true;
+                if (grid_msg.data[n_idx] == 0) knownCount++;
+              }
+            }
+
+            if (knownCount >= 3 && !obstacleNear) {
+              refined_data[idx] = 0; // Mark as known/clear
+            }
+          }
+        }
+      }
+      grid_msg.data = refined_data;
+      pubOccupancy->publish(grid_msg);
+
     }
 
     // status = ros::ok();
