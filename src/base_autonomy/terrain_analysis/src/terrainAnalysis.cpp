@@ -151,36 +151,38 @@ void odometryHandler(const nav_msgs::msg::Odometry::ConstSharedPtr odom) {
   }
 }
 
-// registered laser scan callback function
 void laserCloudHandler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr laserCloud2) {
   laserCloudTime = rclcpp::Time(laserCloud2->header.stamp).seconds();
   if (!systemInited) {
     systemInitTime = laserCloudTime;
     systemInited = true;
   }
+  pcl::PointCloud<pcl::PointXYZ> rawCloud;
+  pcl::fromROSMsg(*laserCloud2, rawCloud); 
 
-  laserCloud->clear();
-  pcl::fromROSMsg(*laserCloud2, *laserCloud);
-
-  pcl::PointXYZI point;
   laserCloudCrop->clear();
-  int laserCloudSize = laserCloud->points.size();
-  for (int i = 0; i < laserCloudSize; i++) {
-    point = laserCloud->points[i];
+  
+  // Calculate this once outside the loop for performance
+  float maxDis = terrainVoxelSize * (terrainVoxelHalfWidth + 1);
+  float timeOffset = static_cast<float>(laserCloudTime - systemInitTime);
 
-    float pointX = point.x;
-    float pointY = point.y;
-    float pointZ = point.z;
+  for (const auto& rawPoint : rawCloud.points) {
+    float dis = sqrt((rawPoint.x - vehicleX) * (rawPoint.x - vehicleX) +
+                     (rawPoint.y - vehicleY) * (rawPoint.y - vehicleY));
 
-    float dis = sqrt((pointX - vehicleX) * (pointX - vehicleX) +
-                     (pointY - vehicleY) * (pointY - vehicleY));
-    if (pointZ - vehicleZ > minRelZ - disRatioZ * dis &&
-        pointZ - vehicleZ < maxRelZ + disRatioZ * dis &&
-        dis < terrainVoxelSize * (terrainVoxelHalfWidth + 1)) {
-      point.x = pointX;
-      point.y = pointY;
-      point.z = pointZ;
-      point.intensity = laserCloudTime - systemInitTime;
+    // Z-axis relative check
+    if (rawPoint.z - vehicleZ > minRelZ - disRatioZ * dis &&
+        rawPoint.z - vehicleZ < maxRelZ + disRatioZ * dis &&
+        dis < maxDis) {
+      
+      pcl::PointXYZI point;
+      point.x = rawPoint.x;
+      point.y = rawPoint.y;
+      point.z = rawPoint.z;
+      
+      // Manually assigning the intensity as the relative timestamp
+      point.intensity = timeOffset; 
+      
       laserCloudCrop->push_back(point);
     }
   }
