@@ -15,8 +15,8 @@
 
 #include "tf2/transform_datatypes.h"
 #include "tf2_ros/transform_broadcaster.h"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #include "nav_msgs/msg/occupancy_grid.hpp"
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/kdtree/kdtree_flann.h>
@@ -500,7 +500,7 @@ int main(int argc, char **argv) {
 
                 float dis4 = sqrt(pointX4 * pointX4 + pointY4 * pointY4);
                 float angle4 = atan2(pointZ4, dis4) * 180.0 / PI;
-                if (angle4 > minDyObsVFOV && angle4 < maxDyObsVFOV || fabs(pointZ4) < absDyObsRelZThre) {
+                if ((angle4 > minDyObsVFOV && angle4 < maxDyObsVFOV) || fabs(pointZ4) < absDyObsRelZThre) {
                   planarVoxelDyObs[planarVoxelWidth * indX + indY]++;
                 }
               }
@@ -749,6 +749,68 @@ int main(int argc, char **argv) {
           }
         }
       }
+
+    // visibility check
+    int centerX = width / 2;
+    int centerY = height / 2;
+
+    // 2. Iterate over every cell in the grid
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            int cellIndex = y * width + x;
+
+            // Only check visibility for currently Traversable cells (value 0)
+            if (grid_msg.data[cellIndex] == 0) {
+                
+                // Setup Bresenham's Line Algorithm variables
+                // Start point: Current Cell (x, y) | End point: Center (centerX, centerY)
+                int x0 = x, y0 = y;
+                int x1 = centerX, y1 = centerY;
+                
+                int dx = std::abs(x1 - x0);
+                int dy = std::abs(y1 - y0);
+                int sx = (x0 < x1) ? 1 : -1;
+                int sy = (y0 < y1) ? 1 : -1;
+                int err = dx - dy;
+
+                bool isOccluded = false;
+
+                // 3. Trace the line
+                while (true) {
+                    // Calculate index of the current point on the ray
+                    int rayIndex = y0 * width + x0;
+
+                    // CHECK: If we hit an obstacle, the original cell is occluded
+                    if (grid_msg.data[rayIndex] == 100) {
+                        isOccluded = true;
+                        break; 
+                    }
+
+                    // If we reached the center, the path is clear
+                    if (x0 == x1 && y0 == y1) {
+                        break;
+                    }
+
+                    // Bresenham step logic
+                    int e2 = 2 * err;
+                    if (e2 > -dy) {
+                        err -= dy;
+                        x0 += sx;
+                    }
+                    if (e2 < dx) {
+                        err += dx;
+                        y0 += sy;
+                    }
+                }
+
+                // 4. Update the cell if it was occluded
+                if (isOccluded) {
+                    grid_msg.data[cellIndex] = -1; // Standard ROS value for "Unknown"
+                }
+            }
+        }
+    }
+
 
       // --- Simple Dilation / Neighborhood Filling ---
       auto refined_data = grid_msg.data; 
