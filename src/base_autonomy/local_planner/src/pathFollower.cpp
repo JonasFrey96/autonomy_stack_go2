@@ -205,7 +205,8 @@ void stopHandler(const std_msgs::msg::Int8::ConstSharedPtr stop)
 int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
-  nh = rclcpp::Node::make_shared("pathFollower");
+  auto options = rclcpp::NodeOptions();
+  nh = rclcpp::Node::make_shared("path_follower", options);
 
   nh->declare_parameter<double>("sensorOffsetX", sensorOffsetX);
   nh->declare_parameter<double>("sensorOffsetY", sensorOffsetY);
@@ -283,7 +284,7 @@ int main(int argc, char** argv)
 
   auto subStop = nh->create_subscription<std_msgs::msg::Int8>("/stop", 5, stopHandler);
 
-  auto pubSpeed = nh->create_publisher<geometry_msgs::msg::TwistStamped>("/cmd_vel", 5);
+  auto pubSpeed = nh->create_publisher<geometry_msgs::msg::TwistStamped>("~/cmd_vel", 5);
 
   geometry_msgs::msg::TwistStamped cmd_vel;
   cmd_vel.header.frame_id = "spot/body";

@@ -501,7 +501,8 @@ void readCorrespondences()
 int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
-  nh = rclcpp::Node::make_shared("localPlanner");
+  auto options = rclcpp::NodeOptions();
+  nh = rclcpp::Node::make_shared("local_planner", options);
 
   nh->declare_parameter<std::string>("pathFolder", pathFolder);
   nh->declare_parameter<double>("vehicleLength", vehicleLength);
@@ -602,11 +603,11 @@ int main(int argc, char** argv)
 
   auto subCheckObstacle = nh->create_subscription<std_msgs::msg::Bool>("/check_obstacle", 5, checkObstacleHandler);
 
-  auto pubPath = nh->create_publisher<nav_msgs::msg::Path>("/path", 5);
+  auto pubPath = nh->create_publisher<nav_msgs::msg::Path>("~/path", 5);
   nav_msgs::msg::Path path;
 
   #if PLOTPATHSET == 1
-  auto pubFreePaths = nh->create_publisher<sensor_msgs::msg::PointCloud2>("/free_paths", 2);
+  auto pubFreePaths = nh->create_publisher<sensor_msgs::msg::PointCloud2>("~/free_paths", 2);
   #endif
 
   //auto pubLaserCloud = nh->create_publisher<sensor_msgs::msg::PointCloud2> ("/stacked_scans", 2);

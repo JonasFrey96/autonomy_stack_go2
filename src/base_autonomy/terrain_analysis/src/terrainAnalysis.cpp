@@ -207,7 +207,8 @@ void clearingHandler(const std_msgs::msg::Float32::ConstSharedPtr dis) {
 
 int main(int argc, char **argv) {
   rclcpp::init(argc, argv);
-  auto nh = rclcpp::Node::make_shared("terrainAnalysis");
+  auto options = rclcpp::NodeOptions();
+  auto nh = rclcpp::Node::make_shared("terrain_analysis", options);
 
   nh->declare_parameter<double>("scanVoxelSize", scanVoxelSize);
   nh->declare_parameter<double>("decayTime", decayTime);
@@ -278,12 +279,10 @@ int main(int argc, char **argv) {
   auto subLaserCloud = nh->create_subscription<sensor_msgs::msg::PointCloud2>( "/registered_scan",  rclcpp::QoS(5).best_effort(),  laserCloudHandler);
 
   auto subJoystick = nh->create_subscription<sensor_msgs::msg::Joy>("/joy", 5, joystickHandler);
-
   auto subClearing = nh->create_subscription<std_msgs::msg::Float32>("/map_clearing", 5, clearingHandler);
 
-  auto pubLaserCloud = nh->create_publisher<sensor_msgs::msg::PointCloud2>("/terrain_map", 2);
-
-  auto pubOccupancy = nh->create_publisher<nav_msgs::msg::OccupancyGrid>("/map", rclcpp::QoS(1).transient_local().reliable());
+  auto pubLaserCloud = nh->create_publisher<sensor_msgs::msg::PointCloud2>("~/terrain_map", 2);
+  auto pubOccupancy = nh->create_publisher<nav_msgs::msg::OccupancyGrid>("~/map", rclcpp::QoS(1).transient_local().reliable());
   
   for (int i = 0; i < terrainVoxelNum; i++) {
     terrainVoxelCloud[i].reset(new pcl::PointCloud<pcl::PointXYZI>());
