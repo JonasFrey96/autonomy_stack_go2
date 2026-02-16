@@ -66,7 +66,8 @@ double voxelTimeUpdateThre = 2.0;
 double minRelZ = -1.5;
 double maxRelZ = 0.2;
 double disRatioZ = 0.2;
-float gradientThreshold = 100.0
+float gradientThreshold = 0.4;
+float obstacleThreshold = 0.3; // 30cm height difference is an obstacle
 
 // terrain voxel parameters
 float terrainVoxelSize = 1.0;
@@ -768,7 +769,6 @@ int main(int argc, char **argv) {
       // Fill grid from PointCloud
       // Intensity in terrainCloudElev represents the relative height (disZ)
       // High disZ = Obstacle
-      float obstacleThreshold = 0.3; // 30cm height difference is an obstacle
 
       for (const auto& pt : terrainCloudElev->points) {
         int gridX = int((pt.x - grid_msg.info.origin.position.x) / resolution);
