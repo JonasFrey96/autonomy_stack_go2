@@ -66,7 +66,7 @@ double voxelTimeUpdateThre = 2.0;
 double minRelZ = -1.5;
 double maxRelZ = 0.2;
 double disRatioZ = 0.2;
-float gradientThreshold = 0.4;
+float gradientThreshold = 0.24;
 float obstacleThreshold = 0.3; // 30cm height difference is an obstacle
 
 // terrain voxel parameters
