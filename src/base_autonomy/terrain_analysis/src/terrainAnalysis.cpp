@@ -588,6 +588,33 @@ int main(int argc, char **argv) {
           }
         }
       }
+      
+      // for planarVoxelElevGrad need to loop through
+      for (int i = 0; i < planarVoxelWidth; i++) {
+        for (int j = 0; j < planarVoxelWidth; j++) {
+          // right now only checking for cells that immediate to the cell
+          int idx = (j * planarVoxelWidth) + i;
+          
+          if (planarPointElev[idx].empty()) continue;
+
+          float dz_dx = 0.0;
+          float dz_dy = 0.0;
+
+          if (i > 0 && i < planarVoxelWidth - 1 &&
+              !planarPointElev[idx + 1].empty() &&
+              !planarPointElev[idx - 1].empty()) {
+            dz_dx = (planarVoxelElev[idx + 1] - 
+                           planarVoxelElev[idx -1]) / (2 * planarVoxelSize);
+          }
+          if (j > 0 && j < planarVoxelWidth - 1 &&
+              !planarPointElev[idx - j].empty() &&
+              !planarPointElev[idx + j].empty()) {
+            dz_dy = (planarVoxelElev[idx + planarVoxelWidth] - 
+                          planarVoxelElev[idx - planarVoxelWidth]) / (2 * planarVoxelSize);
+          }
+          planarVoxelElevGrad[idx] = sqrt(dz_dx * dz_dx + dz_dy * dz_dy);
+        }
+      }
 
       // for planarVoxelElevGrad need to loop through
       for (int i = 0; i < planarVoxelWidth; i++) {
@@ -649,6 +676,7 @@ int main(int argc, char **argv) {
                 if (planarVoxelElevGrad[planarVoxelWidth * indX + indY] > gradientThreshold) {
                   disZ = vehicleHeight;     // if the gradient too much then make disZ very high. 
                 }
+                }    
                 terrainCloudElev->push_back(point);
                 terrainCloudElev->points[terrainCloudElevSize].intensity = disZ;
 
@@ -784,6 +812,25 @@ int main(int argc, char **argv) {
         }
       }
 
+      std::vector<int8_t> dilatedData = grid_msg.data; // Work on a copy to keep original state intact during pass
+
+      for (int y = 0; y < height; ++y) {
+          for (int x = 0; x < width; ++x) {
+              // If the original cell was an obstacle
+              if (grid_msg.data[y * width + x] == 100) {
+                  // Apply 3x3 filter: visit neighbors
+                  for (int ny = y - 1; ny <= y + 1; ++ny) {
+                      for (int nx = x - 1; nx <= x + 1; ++nx) {
+                          // Bounds check
+                          if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                              dilatedData[ny * width + nx] = 100;
+                          }
+                      }
+                  }
+              }
+          }
+      }
+
     // visibility check
     int centerX = width / 2;
     int centerY = height / 2;
@@ -815,7 +862,7 @@ int main(int argc, char **argv) {
                     int rayIndex = y0 * width + x0;
 
                     // CHECK: If we hit an obstacle, the original cell is occluded
-                    if (grid_msg.data[rayIndex] == 100) {
+                    if (dilatedData[rayIndex] == 100) {
                         isOccluded = true;
                         break; 
                     }
