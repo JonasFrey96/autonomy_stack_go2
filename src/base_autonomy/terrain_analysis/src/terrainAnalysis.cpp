@@ -616,6 +616,33 @@ int main(int argc, char **argv) {
         }
       }
 
+      // for planarVoxelElevGrad need to loop through
+      for (int i = 0; i < planarVoxelWidth; i++) {
+        for (int j = 0; j < planarVoxelWidth; j++) {
+          // right now only checking for cells that immediate to the cell
+          int idx = (j * planarVoxelWidth) + i;
+          
+          if (planarPointElev[idx].empty()) continue;
+
+          float dz_dx = 0.0;
+          float dz_dy = 0.0;
+
+          if (i > 0 && i < planarVoxelWidth - 1 &&
+              !planarPointElev[idx + 1].empty() &&
+              !planarPointElev[idx - 1].empty()) {
+            dz_dx = (planarVoxelElev[idx + 1] - 
+                           planarVoxelElev[idx -1]) / (2 * planarVoxelSize);
+          }
+          if (j > 0 && j < planarVoxelWidth - 1 &&
+              !planarPointElev[idx - j].empty() &&
+              !planarPointElev[idx + j].empty()) {
+            dz_dy = (planarVoxelElev[idx + planarVoxelWidth] - 
+                          planarVoxelElev[idx - planarVoxelWidth]) / (2 * planarVoxelSize);
+          }
+          planarVoxelElevGrad[idx] = sqrt(dz_dx * dz_dx + dz_dy * dz_dy);
+        }
+      }
+
       terrainCloudElev->clear();
       int terrainCloudElevSize = 0;
       for (int i = 0; i < terrainCloudSize; i++) {
@@ -648,6 +675,7 @@ int main(int argc, char **argv) {
                   planarPointElevSize >= minBlockPointNum) {
                 if (planarVoxelElevGrad[planarVoxelWidth * indX + indY] > gradientThreshold) {
                   disZ = vehicleHeight;     // if the gradient too much then make disZ very high. 
+                }
                 }    
                 terrainCloudElev->push_back(point);
                 terrainCloudElev->points[terrainCloudElevSize].intensity = disZ;
