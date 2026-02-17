@@ -414,7 +414,10 @@ int main(int argc, char** argv)
           cmd_vel.twist.angular.z = maxYawRate * PI / 180.0 * joyManualYaw;
         }
 
-        pubSpeed->publish(cmd_vel);
+        if (!(safetyStop & 16)) {
+            pubSpeed->publish(cmd_vel);
+        }
+        
 
         pubSkipCount = pubSkipNum;
       }
