@@ -892,6 +892,7 @@ int main(int argc, char** argv)
               path.poses[i].pose.position.x = pathScale * (cos(rotAng) * x - sin(rotAng) * y);
               path.poses[i].pose.position.y = pathScale * (sin(rotAng) * x + cos(rotAng) * y);
               path.poses[i].pose.position.z = pathScale * z;
+              path.poses[i].pose.orientation.w = 0.0;
             } else {
               path.poses.resize(i);
               break;
@@ -992,6 +993,7 @@ int main(int argc, char** argv)
         path.poses[0].pose.position.x = 0;
         path.poses[0].pose.position.y = 0;
         path.poses[0].pose.position.z = 0;
+        path.poses[0].pose.orientation.w = 0.0;
 
         path.header.stamp = rclcpp::Time(static_cast<uint64_t>(odomTime * 1e9));
         path.header.frame_id = "spot/body";
