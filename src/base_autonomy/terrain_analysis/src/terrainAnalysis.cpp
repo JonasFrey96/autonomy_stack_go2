@@ -66,7 +66,7 @@ double voxelTimeUpdateThre = 2.0;
 double minRelZ = -1.5;
 double maxRelZ = 0.2;
 double disRatioZ = 0.2;
-float gradientThreshold = 0.24;
+float gradientThreshold = 0.35;
 float obstacleThreshold = 0.3; // 30cm height difference is an obstacle
 
 // terrain voxel parameters
@@ -244,6 +244,8 @@ int main(int argc, char **argv) {
   nh->declare_parameter<double>("minRelZ", minRelZ);
   nh->declare_parameter<double>("maxRelZ", maxRelZ);
   nh->declare_parameter<double>("disRatioZ", disRatioZ);
+  nh->declare_parameter<float>("gradientThreshold", gradientThreshold);
+  nh->declare_parameter<float>("obstacleThreshold", obstacleThreshold);
 
   nh->get_parameter("scanVoxelSize", scanVoxelSize);
   nh->get_parameter("decayTime", decayTime);
@@ -276,6 +278,8 @@ int main(int argc, char **argv) {
   nh->get_parameter("minRelZ", minRelZ);
   nh->get_parameter("maxRelZ", maxRelZ);
   nh->get_parameter("disRatioZ", disRatioZ);
+  nh->get_parameter("gradientThreshold", gradientThreshold);
+  nh->get_parameter("obstacleThreshold", obstacleThreshold);
 
   auto subOdometry = nh->create_subscription<nav_msgs::msg::Odometry>("/state_estimation", 5, odometryHandler);
 
