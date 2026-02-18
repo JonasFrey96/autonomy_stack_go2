@@ -141,6 +141,10 @@ void pathHandler(const nav_msgs::msg::Path::ConstSharedPtr pathIn)
     path.poses[i].pose.position.x = pathIn->poses[i].pose.position.x;
     path.poses[i].pose.position.y = pathIn->poses[i].pose.position.y;
     path.poses[i].pose.position.z = pathIn->poses[i].pose.position.z;
+    path.poses[i].pose.orientation.x = pathIn->poses[i].pose.orientation.x;
+    path.poses[i].pose.orientation.y = pathIn->poses[i].pose.orientation.y;
+    path.poses[i].pose.orientation.z = pathIn->poses[i].pose.orientation.z;
+    path.poses[i].pose.orientation.w = pathIn->poses[i].pose.orientation.w;
   }
 
   vehicleXRec = vehicleX;
@@ -359,16 +363,61 @@ int main(int argc, char** argv)
       if (vehicleYawRate > maxYawRate * PI / 180.0) vehicleYawRate = maxYawRate * PI / 180.0;
       else if (vehicleYawRate < -maxYawRate * PI / 180.0) vehicleYawRate = -maxYawRate * PI / 180.0;
 
-      if (joySpeed2 == 0 && !autonomyMode) {
-        vehicleYawRate = maxYawRate * joyYaw * PI / 180.0;
-      } else if (pathSize <= 1 || (dis < stopDisThre && noRotAtGoal)) {
-        vehicleYawRate = 0;
-      }
+
 
       if (pathSize <= 1) {
         joySpeed2 = 0;
       } else if (endDis / slowDwnDisThre < joySpeed) {
         joySpeed2 *= endDis / slowDwnDisThre;
+      }
+      bool isAtGoal = (endDis < stopDisThre);
+      
+      if (isAtGoal && autonomyMode) {
+          auto lastPose = path.poses[pathSize - 1].pose;
+          auto q = lastPose.orientation;
+
+          // Check if quaternion is provided (not all zeros)
+          if (!(q.x == 0 && q.y == 0 && q.z == 0 && q.w == 0)) {
+              double r, p, targetYaw;
+              tf2::Quaternion tf_q(q.x, q.y, q.z, q.w);
+              tf2::Matrix3x3(tf_q).getRPY(r, p, targetYaw);
+
+              // Calculate heading error relative to the path's starting frame
+              float goalDirDiff = vehicleYaw - targetYaw;
+              
+              // Normalize angle to [-PI, PI]
+              while (goalDirDiff > PI)  goalDirDiff -= 2 * PI;
+              while (goalDirDiff < -PI) goalDirDiff += 2 * PI;
+
+              // Turn towards target yaw using the stop gain
+              vehicleYawRate = -1.0 * goalDirDiff;
+
+              if (fabs(goalDirDiff) < 0.175) { // If within ~10 degrees, consider it aligned
+                  vehicleYawRate = 0;
+              } else {
+                  // Cast everything to float to match vehicleYawRate
+                  float minYawRate = 0.45f; 
+                  float maxYawLimit = static_cast<float>(stopYawRateGain * PI / 180.0);
+
+                  if (vehicleYawRate < 0) {
+                      // Use float versions of min/max
+                      vehicleYawRate = -minYawRate; //std::min(vehicleYawRate, -minYawRate);
+                      //vehicleYawRate = std::max(vehicleYawRate, -maxYawLimit);
+                  } else {
+                      vehicleYawRate = minYawRate; // std::max(vehicleYawRate, minYawRate);
+                      //vehicleYawRate = std::min(vehicleYawRate, maxYawLimit);
+                  }
+              }
+          } else {
+              // Quaternion is 0,0,0,0 -> No orientation requested
+              vehicleYawRate = 0;
+          }
+      }
+      else if (joySpeed2 == 0 && !autonomyMode) {
+          vehicleYawRate = maxYawRate * joyYaw * PI / 180.0;
+      } 
+      else if (pathSize <= 1 || (isAtGoal && noRotAtGoal)) {
+          vehicleYawRate = 0;
       }
 
       float joySpeed3 = joySpeed2;

@@ -99,6 +99,7 @@ float gridVoxelOffsetY = 4.5;
 const int gridVoxelNumX = 161;
 const int gridVoxelNumY = 451;
 const int gridVoxelNum = gridVoxelNumX * gridVoxelNumY;
+int at_goal_count = 0;
 
 pcl::PointCloud<pcl::PointXYZI>::Ptr laserCloud(new pcl::PointCloud<pcl::PointXYZI>());
 pcl::PointCloud<pcl::PointXYZI>::Ptr laserCloudCrop(new pcl::PointCloud<pcl::PointXYZI>());
@@ -899,7 +900,30 @@ int main(int argc, char** argv)
 
           path.header.stamp = rclcpp::Time(static_cast<uint64_t>(odomTime * 1e9));
           path.header.frame_id = "spot/body";
-          pubPath->publish(path);
+
+
+          bool shouldPublish = false;
+          bool increase = false;
+          for (const auto& pose : path.poses) {
+              // Calculate distance from current vehicle position to the path point
+              float dx = pose.pose.position.x;
+              float dy = pose.pose.position.y;
+              float distance = sqrt(dx * dx + dy * dy);
+
+              if (distance > 0.3) { // 25cm threshold
+                  increase = true;
+                  break; // Stop searching once one point qualifies
+              }
+          }
+          if (increase) {
+            at_goal_count++;
+          } else {
+            at_goal_count = 0;
+          }
+          shouldPublish = at_goal_count > 10;
+          if (shouldPublish) {
+              pubPath->publish(path);
+          }
 
           #if PLOTPATHSET == 1
           freePaths->clear();
